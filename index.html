@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gửi Tiểu My</title>
+    <style>
+        /* Import Font chữ */
+        @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Patrick+Hand&family=Fira+Code:wght@400&display=swap');
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #050505; /* Nền đen */
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 1.8s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* Lớp Intro đen (Chỉ hiển thị chữ code) */
+        #intro-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 50;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Fira Code', monospace;
+            color: #0f0;
+            font-size: 14px;
+            pointer-events: none; /* Cho phép click xuyên qua */
+            transition: opacity 1s ease;
+        }
+
+        /* Nút Start - Đưa Z-index lên cao nhất và pointer-events auto */
+        #start-btn {
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 40px;
+            background: transparent;
+            color: #ff0a54;
+            border: 2px solid #ff0a54;
+            font-family: 'Fira Code', monospace;
+            font-size: 1.2rem;
+            cursor: pointer;
+            z-index: 999; /* Luôn nổi trên cùng */
+            pointer-events: auto; /* Bắt buộc nhận click */
+            transition: 0.3s;
+            box-shadow: 0 0 15px rgba(255, 10, 84, 0.3);
+            display: none; /* Ẩn lúc đầu chờ code chạy xong */
+        }
+        
+        #start-btn:hover {
+            background: #ff0a54;
+            color: white;
+            box-shadow: 0 0 30px rgba(255, 10, 84, 0.8);
+        }
+
+        /* Khu vực chữ */
+        #content-area {
+            position: absolute;
+            top: 50%;
+            left: 8%;
+            transform: translateY(-50%);
+            width: 40%;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 2s ease 0.5s, transform 2s ease 0.5s;
+            transform: translateY(30px);
+            pointer-events: none;
+        }
+
+        h1 {
+            font-family: 'Great Vibes', cursive;
+            font-size: 5rem;
+            line-height: 1.1;
+            margin: 0;
+            color: #fff;
+            text-shadow: 0 0 10px #ff0055, 0 0 20px #ff0055, 0 0 40px #ff0055;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        .message {
+            font-family: 'Patrick Hand', cursive;
+            font-size: 1.5rem;
+            color: #ffe6ea;
+            margin-top: 20px;
+            line-height: 1.6;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-left: 4px solid #ff0a54;
+            border-radius: 0 15px 15px 0;
+            backdrop-filter: blur(5px);
+            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+
+        .slide-layout {
+            transform: translateX(25%);
+        }
+
+        .show-text {
+            opacity: 1 !important;
+            transform: translateY(-50%) !important;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 10px #ff0055, 0 0 20px #ff0055; }
+            to { text-shadow: 0 0 20px #ff0055, 0 0 30px #ff0055, 0 0 40px #ff0055; }
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 3.5rem; }
+            #content-area { width: 90%; left: 5%; top: 70%; text-align: center; }
+            .slide-layout { transform: translateY(-20%); }
+            .message { border-left: none; border-top: 4px solid #ff0a54; border-radius: 15px; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="intro-layer">
+        <div id="console"></div>
+    </div>
+    
+    <button id="start-btn">[ BẤM ĐÂY NÀ ! ]</button>
+
+    <div id="container">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <div id="content-area">
+        <h1 id="main-title">Happy Birthday<br>Tiểu My</h1>
+        <div id="msg-box" class="message"></div>
+    </div>
+
+    <script>
+        const CONFIG = {
+            message: "Chúc em tuổi mới thật rực rỡ. Mong rằng nụ cười của em sẽ luôn tỏa sáng như những vì sao đêm nay. Yêu em nhiều! ❤️",
+            colors: ["#590d22", "#800f2f", "#a80038", "#c9184a", "#ff0a54", "#ff4d6d", "#ff8fab", "#ffb3c6", "#ffffff"],
+            particleCount: 7968, 
+            scale: 0, 
+        };
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let W, H;
+
+        function resize() {
+            W = canvas.width = window.innerWidth;
+            H = canvas.height = window.innerHeight;
+            CONFIG.scale = Math.min(W, H) / 50;
+        }
+        resize();
+        window.addEventListener('resize', resize);
+
+        // --- PARTICLE SYSTEM ---
+        class Particle {
+            constructor(targetX, targetY) {
+                this.x = W / 2;
+                this.y = H + 50; 
+                this.targetX = targetX;
+                this.targetY = targetY;
+                this.vx = (Math.random() - 0.5) * 15;
+                this.vy = (Math.random() - 2) * 15;
+                this.friction = 0.93;
+                this.ease = 0.03 + Math.random() * 0.03;
+                this.size = Math.random() * 3 + 1.5; 
+                this.color = CONFIG.colors[Math.floor(Math.random() * CONFIG.colors.length)];
+                this.finished = false;
+            }
+
+            update() {
+                if (!this.finished) {
+                    this.x += this.vx;
+                    this.y += this.vy;
+                    this.vx *= this.friction;
+                    this.vy *= this.friction;
+                    
+                    let dx = this.targetX - this.x;
+                    let dy = this.targetY - this.y;
+                    this.x += dx * this.ease;
+                    this.y += dy * this.ease;
+
+                    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) {
+                        this.finished = true;
+                        this.x = this.targetX;
+                        this.y = this.targetY;
+                    }
+                }
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        let particles = [];
+        
+        function getHeartPoint() {
+            let t = Math.random() * Math.PI * 2;
+            let x = 16 * Math.pow(Math.sin(t), 3);
+            let y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+            let r = Math.sqrt(Math.random()); 
+            return {
+                x: W/2 + x * CONFIG.scale * r,
+                y: (H/2 - 20) - y * CONFIG.scale * r
+            };
+        }
+
+        function loop() {
+            ctx.clearRect(0, 0, W, H);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(loop);
+        }
+
+        // --- LOGIC ---
+        const consoleDiv = document.getElementById('console');
+        const startBtn = document.getElementById('start-btn');
+        const introLayer = document.getElementById('intro-layer');
+        
+        const lines = [
+            "> Initializing Love Core...",
+            "> Loading Particles...",
+            "> Target: Tiểu My",
+            "> Ready to Bloom..."
+        ];
+        
+        let lineIdx = 0;
+        function typeConsole() {
+            if (lineIdx < lines.length) {
+                consoleDiv.innerHTML += lines[lineIdx] + "<br>";
+                lineIdx++;
+                setTimeout(typeConsole, 300);
+            } else {
+                startBtn.style.display = 'block'; // Hiện nút Start
+            }
+        }
+        // Chạy dòng code ngay khi mở
+        typeConsole();
+
+        startBtn.addEventListener('click', () => {
+            // Ẩn nút và lớp intro
+            startBtn.style.display = 'none';
+            introLayer.style.opacity = 0;
+            
+            // Xóa intro khỏi DOM sau 1s để không che chắn gì nữa
+            setTimeout(() => { 
+                introLayer.style.display = 'none'; 
+            }, 1000);
+
+            loop();
+
+            // Spawn Particles
+            let count = 0;
+            const interval = setInterval(() => {
+                for (let i = 0; i < 50; i++) { 
+                    let pos = getHeartPoint();
+                    particles.push(new Particle(pos.x, pos.y));
+                }
+                count += 50;
+                if (count >= CONFIG.particleCount) clearInterval(interval);
+            }, 40);
+
+            // Animation Sequence
+            setTimeout(() => {
+                document.getElementById('container').classList.add('slide-layout');
+                setTimeout(() => {
+                    document.getElementById('content-area').classList.add('show-text');
+                    typeWriter();
+                }, 1000);
+            }, 5000);
+        });
+
+        let charI = 0;
+        function typeWriter() {
+            const msgBox = document.getElementById('msg-box');
+            if (charI < CONFIG.message.length) {
+                msgBox.innerHTML += CONFIG.message.charAt(charI);
+                charI++;
+                setTimeout(typeWriter, 50);
+            }
+        }
+    </script>
+</body>
+</html>
